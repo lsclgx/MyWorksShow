@@ -1,0 +1,26 @@
+const wechatPublicData = [
+  {
+    name: '久海纳公众号',
+    desc: '久海纳公众号驾驶员端',
+    url: '',
+    qrcode: './images/qrcode/久海纳公众号.png',
+    doc: '',
+    logo: '',
+    time: '2017-12-05',
+    belong: '工作',
+    stack: ['html','js','css'],
+    type: '微信公众号',
+  },
+  {
+    name: '中原物流公众号',
+    desc: '中原物流公众号驾驶员端',
+    url: '',
+    qrcode: './images/qrcode/中原物流公众号.png',
+    doc: '',
+    logo: '',
+    time: '2017-12-05',
+    belong: '工作',
+    stack: ['html','js','css'],
+    type: '微信公众号',
+  },
+]
