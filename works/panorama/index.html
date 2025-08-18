@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wholescene</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    button {
+      width: 100px;
+      height: 36px;
+      position: fixed;
+      left: 50%;
+      margin-left: -50px;
+    }
+  </style>
+</head>
+
+<body>
+  <button id="button">进入户型</button>
+</body>
+<!-- 配置type="importmap",.html文件也能和项目开发环境一样方式引入threejs -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://lsclgx.github.io/MyLibs/threejs-0.148.0/three/build/three.module.js",
+      "three/addons/": "https://lsclgx.github.io/MyLibs/threejs-0.148.0/three/examples/jsm/"
+    }
+  }
+</script>
+<script type="module">
+  import { TWEEN } from 'three/addons/libs/tween.module.min.js';
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js'
+
+  let fbo = null
+  let fbo2 = null
+
+  let currentScene = 'first'
+  document.getElementById('button').innerHTML = '进入户型2'
+
+  const width = window.innerWidth
+  const height = window.innerHeight
+
+	// 创建一个场景
+  const scene = new THREE.Scene()
+
+  // 坐标系
+  // const axesHelper = new THREE.AxesHelper(500)
+  // scene.add(axesHelper)
+
+  // 创建一个透视相机
+  const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
+
+  // 创建一个球体。节点数量越大，需要计算的三角形就越多，影响性能
+  const sphereGeometry = new THREE.SphereGeometry(/*半径*/50, /*垂直节点数量*/50, /*水平节点数量*/50);
+
+  // 创建一个材质
+  const material = new THREE.MeshBasicMaterial({
+    map: new THREE.TextureLoader().load('./kanfang1.jpg'), //加载一整张纹理图片
+    side: THREE.DoubleSide
+  });
+
+  // 声明球体纹理为全景图。将球体添加到场景
+  const sphere = new THREE.Mesh(sphereGeometry, material);
+  scene.add(sphere);
+  console.log('sphere.material', sphere.material)
+
+  const renderTargetParameters = {
+    format: THREE.RGBAFormat,
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+    stencilBuffer: false,
+  };
+
+  fbo = new THREE.WebGLRenderTarget(width, height, renderTargetParameters);
+
+  // 创建一个渲染器
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true // 是否执行抗锯齿
+  })
+  renderer.setSize(width, height) // 设置canvas宽高
+  document.body.appendChild(renderer.domElement) // 将canvas元素添加到文档中
+
+  // 控制相机
+  const controls = new OrbitControls(camera, renderer.domElement) // 创建相机控制器，用鼠标键盘来来控制相机
+  controls.enableDamping = true // 使动画循环使用时阻尼或自转 意思是否有惯性
+  controls.dampingFactor = 1 // 动态阻尼系数 就是鼠标拖拽旋转灵敏度
+  controls.enableZoom = true // 是否可以缩放
+  controls.autoRotate = false // 是否自动旋转
+  controls.minDistance = 10 // 设置相机距离原点的最近距离
+  controls.maxDistance = 100 // 设置相机距离原点的最远距离
+  controls.enablePan = false // 是否开启右键拖拽
+
+  camera.position.set(0, 0, 1)
+  const target = new THREE.Vector3(50, 0, -50); // 设置lookAt的目标点
+  camera.lookAt(target);
+
+  function render(type) {
+    // controls.update()
+    renderer.setRenderTarget(null);
+    if (type != 'trans') {
+      renderer.setRenderTarget(null);
+    } else {
+      renderer.setRenderTarget(fbo);
+      renderer.clear();
+    }
+    console.log('render')
+    renderer.render(scene, camera) // 渲染场景
+  }
+
+
+  // 创建目标场景
+  const sceneDestination = new THREE.Scene();
+  // 创建一个球体。节点数量越大，需要计算的三角形就越多，影响性能
+  const sphereGeometry1 = new THREE.SphereGeometry(/*半径*/50, /*垂直节点数量*/50, /*水平节点数量*/50);
+
+  // 创建一个材质
+  const material1 = new THREE.MeshBasicMaterial({
+    map: new THREE.TextureLoader().load('./kanfang2.jpg'), //加载一整张纹理图片
+    side: THREE.DoubleSide
+  });
+
+  // 声明球体纹理为全景图。将球体添加到场景
+  const sphere1 = new THREE.Mesh(sphereGeometry1, material1);
+  sceneDestination.add(sphere1);
+
+  fbo2 = new THREE.WebGLRenderTarget(width, height, {
+    format: THREE.RGBAFormat,
+    minFilter: THREE.LinearFilter,
+    magFilter: THREE.LinearFilter,
+  });
+
+  function render2(type) {
+    // controls.update()
+    if (type != 'trans') {
+      renderer.setRenderTarget(null);
+    } else {
+      renderer.setRenderTarget(fbo2);
+      renderer.clear();
+    }
+    console.log('render2')
+    renderer.render(sceneDestination, camera) // 渲染场景
+  }
+
+
+  // 过渡的参数
+  const transitionParams = {
+    // 过渡进程，从0-1
+    transition: 0,
+    // 过渡纹理
+    texture: undefined,
+    // 是否使用纹理
+    useTexture: false,
+    // 过渡速度
+    transitionSpeed: 0.03,
+    // 是否开始动画
+    animate: false,
+  };
+
+  // 创建过渡场景
+  const sceneTransition = new THREE.Scene();
+  const materialTransition = new THREE.ShaderMaterial({
+    uniforms: {
+      tDiffuse1: {
+        value: null,
+      },
+      tDiffuse2: {
+        value: null,
+      },
+      mixRatio: {
+        value: 0.0,
+      },
+      threshold: {
+        value: 0.1,
+      },
+      useTexture: {
+        value: false,
+      },
+      tMixTexture: {
+        value: transitionParams.texture,
+      },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() {
+          vUv = vec2( uv.x, uv.y );
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+      }
+    `,
+    fragmentShader: `
+      uniform float mixRatio;
+      uniform sampler2D tDiffuse1;
+      uniform sampler2D tDiffuse2;
+      uniform sampler2D tMixTexture;
+      uniform bool useTexture;
+      uniform float threshold;
+      varying vec2 vUv;
+      void main() {
+          vec4 texel1 = texture2D( tDiffuse1, vUv );
+          vec4 texel2 = texture2D( tDiffuse2, vUv );
+          if (useTexture==true) {
+              vec4 transitionTexel = texture2D( tMixTexture, vUv );
+              float r = mixRatio * (1.0 + threshold * 2.0) - threshold;
+              float mixf=clamp((transitionTexel.r - r)*(1.0/threshold), 0.0, 1.0);
+              gl_FragColor = mix( texel1, texel2, mixf );
+          } else {
+              gl_FragColor = mix( texel2, texel1, mixRatio );
+          }
+      }
+    `,
+  })
+  const finalMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), materialTransition);
+  sceneTransition.add(finalMesh);
+
+  // 创建过渡正交相机
+  let frustumSize = 1;
+  const cameraTransition = new THREE.OrthographicCamera(frustumSize / -2, frustumSize / 2, frustumSize / 2, frustumSize / -2, -1000, 1000);
+
+  const render3 = () => {
+    requestAnimationFrame(render3)
+    // console.error(11, transitionParams.transition)
+    if (transitionParams.transition === 0) {
+      if (currentScene === 'first') render();
+      if (currentScene === 'second') render2();
+    } else if (transitionParams.transition >= 1) {
+      currentScene = currentScene === 'first' ? 'second' : 'first'
+      document.getElementById('button').innerHTML = currentScene === 'first' ? '进入户型2' : '进入户型1'
+      setTimeout(() => {
+        transitionParams.animate = false;
+        transitionParams.transition = 0;
+      }, 10);
+      if (currentScene === 'first') render();
+      if (currentScene === 'second') render2();
+    } else {
+      console.log('333')
+      render('trans');
+      render2('trans')
+      renderer.setRenderTarget(null);
+      renderer.clear();
+      renderer.render(sceneTransition, cameraTransition);
+    }
+    if (transitionParams.animate && transitionParams.transition <= 1) {
+      // 动画还在执行过程中
+      transitionParams.transition = transitionParams.transition + transitionParams.transitionSpeed;
+      materialTransition.uniforms.mixRatio.value = transitionParams.transition;
+    }
+  }
+  render3()
+
+  const update = (params, f1, f2) => {
+    console.error(fbo2.texture)
+    console.error(fbo.texture)
+    // 动画正在执行中
+    if (transitionParams.animate) return false;
+    const { transitionSpeed = 0.03, texture, useTexture = false } = params;
+    transitionParams.texture = texture;
+    transitionParams.useTexture = useTexture;
+
+    transitionParams.transition = 0;
+    transitionParams.transitionSpeed = transitionSpeed;
+    transitionParams.animate = true;
+    materialTransition.uniforms.tDiffuse1.value = f1.texture;
+    materialTransition.uniforms.tDiffuse2.value = f2.texture;
+    materialTransition.uniforms.threshold.value = 0.1;
+    materialTransition.uniforms.mixRatio.value = 0.0;
+    materialTransition.uniforms.tMixTexture.value = texture;
+    materialTransition.uniforms.useTexture.value = useTexture;
+    return true;
+  }
+
+  document.getElementById('button').onclick = function() {
+    if (currentScene === 'first') update(transitionParams, fbo2, fbo);
+    else update(transitionParams, fbo, fbo2);
+  }
+
+</script>
+
+</html>

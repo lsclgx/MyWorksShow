@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>signature</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+    }
+    canvas {
+      display: block;
+      background-color: #ddd;
+      margin: 50px auto;
+      cursor: url('./assets/images/pen.cur');
+    }
+    .btns {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    button {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="600" height="400"></canvas>
+  <div class="btns">
+    <button id="prev">上一步</button>
+    <button id="reset">重写</button>
+    <button id="save">保存</button>
+  </div>
+</body>
+<script>
+  // 之前都是用插件，这次整理一下原理
+  // 摘自文章博客
+window.onload = function () {
+  // 默认鼠标是没有按下的
+  let isDown = false;
+  // 记录上一次鼠标的位置
+  let lastX = 0; // x轴
+  let lastY = 0; // y轴
+
+  // 这次要用数组来记录
+  let points = []; // 这是一个笔画的点
+  let allPonits = []; // 这是所有笔画的点
+  
+  // 获取canvas元素 
+  const canvas = document.getElementById("canvas");
+  // 获取canvas的上下文
+  const ctx = canvas.getContext("2d");
+  // 定义线条的宽度，即画笔的粗细
+  ctx.lineWidth = 3;
+  // 定义画笔的颜色
+  ctx.strokeStyle = "#000";
+  /**
+    * 定义绘制方法
+    * 线条其实是由两个点连起来的一个线段
+    * 一个又一个的小线段，连起来就组成了一个线条
+    * 在画布上绘制线条，主要用到的三个核心方法
+    * moveTo: 是 Canvas 2D API 将一个新的子路径的起始点移动到 (x，y) 坐标的方法。
+    * lineTo: 是 Canvas 2D API 使用直线连接子路径的终点到 x，y 坐标的方法。
+    * 当然，定义了起点和终点还不够，还需要手动调用开始绘制这个路径
+    * startX 和 startY 一起组成了起点的坐标
+    * endX 和 endY 一起组成了线段终点的坐标
+    */
+
+  function draw(startX, startY, endX, endY) {
+    // 起点
+    ctx.moveTo(startX, startY);
+    // 终点
+    ctx.lineTo(endX, endY);
+    // 调用 stroke，即可看到绘制的线条
+    ctx.stroke();
+  }
+  // 监听鼠标按下，得到按下时鼠标在画布上的坐标
+  canvas.addEventListener("mousedown", ({ x, y }) => {
+    const canvas = document.querySelector('canvas')
+    const l = canvas.offsetLeft
+    console.log('l', l)
+    x = x - l
+    y = y - 50
+    isDown = true;
+    // 按下时的点作为起点
+    lastX = x;
+    lastY = y;
+
+    // 保存当前坐标作为起点
+    points.push({ x, y });
+
+    // 创建一个新的路径
+    ctx.beginPath();
+  }, false);
+
+  // 监听鼠标移动
+  canvas.addEventListener("mousemove", ({ x, y }) => {
+    const canvas = document.querySelector('canvas')
+    const l = canvas.offsetLeft
+    x = x - l
+    y = y - 50
+    // 没有按下就不管
+    if (!isDown) return;
+    // // 调用绘制方法
+    // draw(lastX, lastY, x, y);
+    // // 把当前移动时的坐标作为下一次的绘制路径的起点
+    // lastX = x;
+    // lastY = y;
+    // 每次都取最后一个点，作为绘制的起点
+    const lastPoint = points.at(-1);
+    draw(lastPoint.x, lastPoint.y, x, y);
+    // 把当前的点保存起来，又作为下一次绘制的起点
+    points.push({ x, y });
+  }, false);
+
+  // 监听鼠标抬起
+  canvas.addEventListener("mouseup", (e) => {
+    isDown = false;
+    // 关闭路径
+    ctx.closePath();
+
+    // 鼠标抬起，说明当前这一笔就结束了，把这一笔的所有点的数组放到总的里面
+    allPonits.push(points);
+    // 清空这一笔画，为下一笔画做准备
+    points = [];
+  }, false);
+
+  const save = document.getElementById("save");
+  const prev = document.getElementById("prev");
+  const reset = document.getElementById("reset");
+
+  save.onclick = function(e) {
+    // 使用canvas的toDataURL()方法，将画布内容转换为base64格式的图片数据:
+    let imgData = canvas.toDataURL('image/png'); 
+    // 创建下载链接
+    let link = document.createElement('a');
+    link.download = 'signature.png';
+    link.href = imgData;
+    // 触发点击
+    link.click();
+  }
+  
+  // 清空画布
+  function resetPath() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+  // 上一步
+  prev.addEventListener("click", (e) => {
+    // canvas本身不会记录用户的每一步操作
+    // 要回到上一步，只能一次性清空所有的
+    resetPath();
+    // 删除最后一个笔画
+    allPonits.pop();
+    // 遍历所有的笔画并重新绘制
+
+    // allPoints 是个二维数组
+    allPonits.forEach((ps) => {
+      ps.forEach((item, index) => {
+        // 下一个坐标点
+        let next = ps[index + 1];
+        if (next) {
+          // 有下一个点才执行，否则到最后一个会报错
+          // 开始重新绘制
+          ctx.beginPath();
+          draw(item.x, item.y, next.x, next.y);
+          ctx.closePath();
+        }
+      });
+    });
+  });
+  // 重写
+  reset.addEventListener("click", () => {
+    // 点击重写时清空画布，并清空所有的点
+    resetPath();
+    allPonits = [];
+  }, false);
+};
+</script>
+</html>

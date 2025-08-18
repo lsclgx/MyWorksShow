@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>virtualList</title>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+            background-color: #000;
+        }
+        .box {
+            position: relative;
+            width: 375px;
+            height: 100%;
+            margin: 0 auto;
+        }
+        .container {
+            width: 375px;
+            height: 100%;
+            margin: 0 auto;
+            border: 1px solid red;
+            position: relative;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            background-color: #fff;
+        }
+        .background {
+            width: 375px;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .list {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .nav {
+            width: 20px;
+            background-color: #f5f5f5;
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+        .nav-cell {
+            display: block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .cell {
+            margin: 0;
+            padding: 0 10px;
+            width: 100%;
+            border-bottom: 1px solid #dcdcdc;
+            box-sizing: border-box;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <!-- 字母导航 -->
+        <div class="nav"></div>
+        <div id="wrapper" class="container">
+            <!-- 设置盒子高度，模拟滚动条 -->
+            <div class="background"></div>
+            <!-- 渲染数据 -->
+            <div class="list"></div>
+        </div>
+    </div>
+</body>
+<script src="https://lsclgx.github.io/MyLibs/area.js"></script>
+<script src="https://lsclgx.github.io/MyLibs/pinyinpro@3.23.1.js"></script>
+
+<script>
+const { pinyin } = pinyinPro
+
+// 从网上下载的地区json数据。扁平化，获取首字母
+const flatArea = []
+const fn = (areas, parent) => {
+    areas.forEach(item => {
+        if (item.city) {
+            flatArea.push({
+                name: item.name,
+                code: item.code,
+                letter: pinyin(item.name.slice(0, 1), { toneType: 'none' }).slice(0, 1)
+            })
+            fn(item.city)
+        } else if (item.area) {
+            flatArea.push({
+                name: item.name,
+                code: item.code,
+                letter: pinyin(item.name.slice(0, 1), { toneType: 'none' }).slice(0, 1)
+            })
+            fn(item.area, item.name)
+        } else {
+            const name = parent && item.name === '市辖区' ? parent + item.name : item.name
+            flatArea.push({
+                name: name,
+                code: item.code,
+                letter: pinyin(name.slice(0, 1), { toneType: 'none' }).slice(0, 1)
+            })
+        }
+    })
+}
+fn(areaJson)
+
+// 得到想要的数据格式
+const formatData = []
+const obj = {}
+flatArea.forEach(item => {
+    if (!obj[item.letter]) {
+        obj[item.letter] = [item]
+        formatData.push({
+            letter: item.letter,
+            children: [item]
+        })
+    } else {
+        obj[item.letter].push(item)
+        formatData.find(item1 => item1.letter === item.letter).children.push(item)
+    }
+})
+
+// 按字母排序
+const sortData = []
+const l = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
+l.forEach(item => {
+    item = item.toLocaleUpperCase()
+    const o = formatData.find(item1 => item1.letter.toLocaleUpperCase() === item)
+    if (o) sortData.push(o)
+})
+
+// 扁平化，将字母也放到数据里
+const data = []
+sortData.forEach(item => {
+    data.push({
+        name: item.letter.toLocaleUpperCase(),
+        code: 'letter',
+        letter: item.letter.toLocaleUpperCase()
+    })
+    item.children && item.children.forEach(item => {
+        item.letter = item.letter ? item.letter.toLocaleUpperCase() : ''
+        data.push(item)
+    })
+})
+
+console.log('data', data)
+
+// 一共多少条数据，算上字母也占一行
+let total = data.length
+console.log('total', total)
+</script>
+
+<script>
+    // 单条数据的高度，最好固定，至少不要波动太大，更容易做
+    const cellHeight = 30
+    // 模拟滚动用的容器
+    const bg = document.querySelector('.background')
+    bg.style.height = cellHeight * data.length + 'px'
+    // 外层盒子
+    const wrapper = document.querySelector('#wrapper')
+    // 渲染数据用
+    const list = document.querySelector('.list')
+    // 每页能展示多少条数据
+    const size = Math.ceil(wrapper.clientHeight / cellHeight)
+    // 每行高度固定cellHeight，当前页面在可视窗口能展示n条
+    // 当前页面上展示的第一条在数据中的位置是x，则范围就是[x-n, x+n]或x<n时就是[0，x+n]
+    let scrollRange = []
+    // 字母导航数量和高度
+    const navHeight = sortData.length * 20
+    const navDom = document.querySelector('.nav')
+    navDom.style.height = navHeight + 'px'
+    // 渲染字母导航
+    renderNav()
+    function renderNav() {
+        let str = ''
+        sortData.forEach(item => {
+            str += `<span class="nav-cell">${item.letter.toLocaleUpperCase()}</span>`
+        })
+        navDom.innerHTML = str
+        navDom.addEventListener('click', (e) => {
+            if (e.target.classList.contains('nav-cell')) {
+                wrapper.removeEventListener('scroll', wrapperScroll)
+                const text = e.target.innerText
+                const idx = data.findIndex(item => item.name === text)
+                const scrollTop = idx * cellHeight
+                render(scrollTop)
+                wrapper.scrollTop = scrollTop
+                wrapper.addEventListener('scroll', wrapperScroll)
+            }
+        })
+    }
+
+    // 渲染列表
+    render(0)
+    // 滚动的时候改变渲染的数据
+    function wrapperScroll(e) {
+        // 滚动高度
+        let n = e.target.scrollTop
+        // 展示的第一条在数据中的位置
+        let first = Math.ceil(n / cellHeight)
+        // 如果当前在范围中，则利用list的默认滚动，算是做了节流，也是为了能有滚动边界的效果，不然看到边界的数据是瞬变的
+        if(first > scrollRange[0] && first+size < scrollRange[1]) return
+        // 到了临界点，再更新数据重新渲染
+        render(n)
+    }
+    wrapper.addEventListener('scroll', wrapperScroll)
+
+    function render(n) {
+        let str = ''
+        let first = Math.ceil(n / cellHeight)
+        let leftData = data.slice(first-size, first)
+        let centerData = data.slice(first, first + size)
+        let rightData = data.slice(first + size, first + 2*size)
+        let runData = [...leftData, ...centerData, ...rightData]
+        for(let i = 0; i < runData.length; i ++) {
+            if (runData[i].code === 'letter') {
+                str += `<p class='cell' style='height:${cellHeight}px;line-height:${cellHeight}px;background:#f2f2f2;font-weight:bold;color:#333;'>${runData[i].name}</p>`
+            } else {
+                str += `<p class='cell' style='height:${cellHeight}px;line-height:${cellHeight}px'>${runData[i].name}</p>`
+            }
+        }
+        // 替换数据，重新渲染
+        list.innerHTML = str
+        // 改变list在wrapper中的位置。用transform属性的translate不会回流，性能更好
+        list.style.top = 0 + n - leftData.length * cellHeight + 'px'
+        // 数据改变后，重置范围，在此范围内不替换数据，用list默认滚动
+        scrollRange = [first-leftData.length, first+2*size]
+    }
+
+</script>
+<script>
+
+</script>
+</html>

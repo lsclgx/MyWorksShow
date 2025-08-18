@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>custom audio player</title>
+    <link rel="stylesheet" href="https://lsclgx.github.io/MyLibs/element-ui-2.15.14/element-ui.css">
+    <style>
+        html, body, p, ul {
+            margin: 0;
+            padding: 0;
+            background: #000;
+        }
+        [v-cloak] {
+            display: none;
+        }
+        .el-slider__button {
+            width: 8px;
+            height: 8px;
+            cursor: auto;
+        }
+        .el-slider__button-wrapper, .el-slider__runway {
+            cursor: auto;
+        }
+        .wrapper .el-slider__runway {
+            height: 4px;
+            background-color: #9FA0A9;
+        }
+        .wrapper .el-slider__bar {
+            height: 4px;
+            background-color: #fff;
+        }
+        .wrapper .el-slider__button-wrapper {
+            top: -16px;
+        }
+        .wrapper .el-slider__button {
+            border: 0;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.4);
+        }
+        .wrapper {
+            padding: 50px 20px;
+            margin: 100px auto;
+            background-color: #000;
+        }
+        .container {
+            width: 645px;
+            border-radius: 14px;
+            padding: 30px 50px 30px 20px;
+            margin: 0 auto;
+            background-image: linear-gradient(to bottom left, #ff705b, #ffb457);
+        }
+        .player {
+            width: 600px;
+            height: 200px;
+            border-radius: 14px;
+            padding: 12px;
+            background-color: rgba(0, 0, 0, 0.4);
+            position: relative;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        .avatar {
+            width: 190px;
+            height: 200px;
+            border-radius: 14px;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.4);
+        }
+        .avatar img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+        }
+        .info {
+            width: calc(100% - 200px);
+            height: 100%;
+            margin-left: 10px;
+            display: flex;
+            justify-content: space-between;
+            flex-direction: column;
+            padding: 10px;
+            box-sizing: border-box;
+            /* border: 1px solid gray; */
+        }
+        .name {
+            position: relative;
+        }
+        .name h3 {
+            color: #fff;
+            margin: 0;
+        }
+        .name h5 {
+            color: #EDEEEF;
+            margin: 5px 0 0;
+        }
+        .name svg {
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+        .time {
+            font-size: 14px;
+            color: #ffffffcc;
+        }
+        .time span {
+            display: inline-block;
+            min-width: 40px;
+        }
+        .time span:nth-of-type(2) {
+            margin-left: 3px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .controls button {
+            width: 54px;
+            height: 54px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            box-sizing: border-box;
+            background-color: transparent;
+            transition-property: transform, color, background, background-color, border-color, text-decoration-color, fill, stroke, opacity;
+            transition-timing-function: ease;
+            transition-duration: .25s;
+            -webkit-tap-highlight-color: transparent;
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            -webkit-font-smoothing: auto;
+            --tw-text-opacity: 1;
+            cursor: pointer;
+        }
+        .volumn, .place {
+            width: 120px;
+            height: 54px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        .volumn {
+            justify-content: space-between;
+        }
+        .place {
+            justify-content: flex-end;
+        }
+        .pre, .next, .volume, .mute, .heart {
+            width: 38px!important;
+            height: 38px!important;
+        }
+        .volume-slider {
+            display: none;
+            width: 56px;
+            padding: 0 10px;
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+        .volumn:hover .volume-slider {
+            display: block;
+        }
+        .plays {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .controls button svg {
+            display: block;
+            margin: 0 auto;
+        }
+        .controls button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+    </style>
+</head>
+<body>
+    <div id="app">
+        <audio style="display: none;" id="audio" :src="audioSource" ></audio>
+        <div class="wrapper">
+            <div class="container">
+                <div class="player">
+                    <div class="avatar">
+                        <img src="./album-cover.png" alt="">
+                    </div>
+                    <div class="info">
+                        <div class="name">
+                            <h3 v-cloak>{{ currentName }}</h3>
+                            <h5 v-cloak>{{ currentSinger }}</h5>
+                            <svg t="1730900313319" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4545" width="20" height="20"><path d="M658.346667 703.573333L313.173333 358.4a91.306667 91.306667 0 0 0-128 128l345.173334 345.6a91.306667 91.306667 0 0 0 128-128z m-5.12-512L846.506667 384a91.306667 91.306667 0 1 0 128-128l-192-194.133333a91.733333 91.733333 0 0 0-128 128zM853.333333 418.56l-236.8-234.24L366.08 384 640 656.64zM273.92 609.706667l-125.013333 187.306666-128 190.293334 190.293333-128 186.88-124.586667-61.866667-62.293333z" p-id="4546" fill="#ffffff66"></path></svg>
+                        </div>
+                        <div class="progress">
+                            <el-slider
+                              style="width:100%;"
+                              v-model="value"
+                              @change="changeProcess"
+                              @mousedown.native="isChange = true"
+                              @mouseup.native="isChange = false"
+                              :step="0.5"
+                              :disabled="!audioSource"
+                              :show-tooltip="false"
+                              >
+                            </el-slider>
+                            <span v-cloak class="time"><span>{{currentTime}}</span> / <span>{{sc}}</span></span>
+                        </div>
+                        <div class="controls">
+                            <div class="place">
+                                <button class="heart" v-cloak v-show="!liked" @click="liked = true">
+                                    <svg aria-hidden="true" fill="#ffffff" focusable="false" height="24" role="presentation" viewBox="0 0 24 24" width="24" class="[&amp;>path]:stroke-transparent"><path d="M12.62 20.81C12.28 20.93 11.72 20.93 11.38 20.81C8.48 19.82 2 15.69 2 8.68998C2 5.59998 4.49 3.09998 7.56 3.09998C9.38 3.09998 10.99 3.97998 12 5.33998C13.01 3.97998 14.63 3.09998 16.44 3.09998C19.51 3.09998 22 5.59998 22 8.68998C22 15.69 15.52 19.82 12.62 20.81Z" stroke="transparent" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                                </button>
+
+                                <button class="heart" v-cloak v-show="liked" @click="liked = false">
+                                    <svg aria-hidden="true" fill="red" focusable="false" height="24" role="presentation" viewBox="0 0 24 24" width="24" class="[&amp;>path]:stroke-transparent"><path d="M12.62 20.81C12.28 20.93 11.72 20.93 11.38 20.81C8.48 19.82 2 15.69 2 8.68998C2 5.59998 4.49 3.09998 7.56 3.09998C9.38 3.09998 10.99 3.97998 12 5.33998C13.01 3.97998 14.63 3.09998 16.44 3.09998C19.51 3.09998 22 5.59998 22 8.68998C22 15.69 15.52 19.82 12.62 20.81Z" stroke="transparent" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                                </button>
+                            </div>
+                            <div class="plays">
+                                <button class="pre" @click="pre">
+                                    <svg aria-hidden="true" fill="none" focusable="false" height="24" role="presentation" viewBox="0 0 24 24" width="24"><path d="M20.2409 7.21957V16.7896C20.2409 18.7496 18.1109 19.9796 16.4109 18.9996L12.2609 16.6096L8.11094 14.2096C6.41094 13.2296 6.41094 10.7796 8.11094 9.79957L12.2609 7.39957L16.4109 5.00957C18.1109 4.02957 20.2409 5.24957 20.2409 7.21957Z" fill="#ffffff"></path><path d="M3.76172 18.9303C3.35172 18.9303 3.01172 18.5903 3.01172 18.1803V5.82031C3.01172 5.41031 3.35172 5.07031 3.76172 5.07031C4.17172 5.07031 4.51172 5.41031 4.51172 5.82031V18.1803C4.51172 18.5903 4.17172 18.9303 3.76172 18.9303Z" fill="#ffffff"></path></svg>
+                                </button>
+
+                                <button v-cloak class="pause" v-show="!isPaused" @click="pause">
+                                    <svg aria-hidden="true" fill="none" focusable="false" height="54" role="presentation" viewBox="0 0 24 24" width="54"><path d="M11.9688 2C6.44875 2 1.96875 6.48 1.96875 12C1.96875 17.52 6.44875 22 11.9688 22C17.4888 22 21.9688 17.52 21.9688 12C21.9688 6.48 17.4988 2 11.9688 2ZM10.7188 15.03C10.7188 15.51 10.5188 15.7 10.0087 15.7H8.70875C8.19875 15.7 7.99875 15.51 7.99875 15.03V8.97C7.99875 8.49 8.19875 8.3 8.70875 8.3H9.99875C10.5087 8.3 10.7087 8.49 10.7087 8.97V15.03H10.7188ZM15.9987 15.03C15.9987 15.51 15.7987 15.7 15.2887 15.7H13.9987C13.4887 15.7 13.2887 15.51 13.2887 15.03V8.97C13.2887 8.49 13.4887 8.3 13.9987 8.3H15.2887C15.7987 8.3 15.9987 8.49 15.9987 8.97V15.03Z" fill="#fff"></path></svg>
+                                </button>
+
+                                <button v-cloak class="play" v-show="isPaused" @click="play">
+                                    <svg t="1730779175103" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="11663" width="54" height="54"><path d="M512 78.8c-239.3 0-433.2 194-433.2 433.2 0 239.3 194 433.2 433.2 433.2 239.3 0 433.2-194 433.2-433.2 0.1-239.2-193.9-433.2-433.2-433.2z m183.3 447.9L455.1 720c-12.3 9.9-30.5 1.1-30.5-14.6V318.7c0-15.7 18.2-24.5 30.5-14.6l240.2 193.4c9.4 7.5 9.4 21.7 0 29.2z" fill="#ffffff" p-id="11664"></path></svg>
+                                </button>
+
+                                <button class="next" @click="next">
+                                    <svg aria-hidden="true" fill="none" focusable="false" height="24" role="presentation" viewBox="0 0 24 24" width="24"><path d="M3.76172 7.21957V16.7896C3.76172 18.7496 5.89172 19.9796 7.59172 18.9996L11.7417 16.6096L15.8917 14.2096C17.5917 13.2296 17.5917 10.7796 15.8917 9.79957L11.7417 7.39957L7.59172 5.00957C5.89172 4.02957 3.76172 5.24957 3.76172 7.21957Z" fill="#ffffff"></path><path d="M20.2383 18.9303C19.8283 18.9303 19.4883 18.5903 19.4883 18.1803V5.82031C19.4883 5.41031 19.8283 5.07031 20.2383 5.07031C20.6483 5.07031 20.9883 5.41031 20.9883 5.82031V18.1803C20.9883 18.5903 20.6583 18.9303 20.2383 18.9303Z" fill="#ffffff"></path></svg>
+                                </button>
+                            </div>
+                            <div class="volumn">
+                                <button v-cloak class="volume" v-show="!isMuted" @click="mute">
+                                    <svg t="1730781881216" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="12767" width="24" height="24"><path d="M468.992 169.536c29.312-22.528 64.128-40.768 101.312-25.088 36.864 15.616 48.64 53.12 53.76 90.048 5.248 37.824 5.248 89.92 5.248 154.688v245.568c0 64.768 0 116.864-5.184 154.752-5.12 36.864-16.96 74.368-53.76 89.984-37.248 15.744-72.064-2.56-101.376-25.088-30.016-23.04-68.032-61.888-112.832-107.584-23.04-23.552-38.336-34.944-53.76-41.28-15.616-6.4-34.496-9.152-67.456-9.152-28.544 0-54.08 0-73.408-2.048-20.224-2.112-39.04-6.656-56-18.24-32.192-22.016-44.544-54.208-49.28-83.84C52.864 570.24 53.248 545.984 53.568 526.464v-28.928c-0.32-19.52-0.64-43.776 2.816-65.92 4.672-29.568 17.024-61.76 49.28-83.776 16.896-11.52 35.712-16.128 55.936-18.24 19.328-1.984 44.8-1.984 73.344-1.984 33.024 0 51.904-2.752 67.456-9.152 15.488-6.4 30.72-17.792 53.76-41.28 44.8-45.696 82.88-84.608 112.896-107.648zM699.52 350.08a42.688 42.688 0 0 1 59.776 8.064c32.256 42.24 51.392 95.872 51.392 153.856 0 57.92-19.136 111.552-51.392 153.856a42.688 42.688 0 1 1-67.84-51.712c21.056-27.648 33.92-63.104 33.92-102.144 0-39.04-12.864-74.496-33.92-102.144a42.688 42.688 0 0 1 8-59.776z" fill="#ffffff" p-id="12768"></path><path d="M884.8 269.824a42.688 42.688 0 1 0-62.912 57.6C868.736 378.688 896 442.88 896 512c0 69.12-27.264 133.312-74.112 184.512a42.688 42.688 0 0 0 62.912 57.6c59.904-65.344 96.512-149.632 96.512-242.112 0-92.48-36.608-176.768-96.512-242.176z" fill="#ffffff" p-id="12769"></path></svg>
+                                </button>
+
+                                <button v-cloak class="mute" v-show="isMuted" @click="mute">
+                                    <svg t="1730781926164" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="13038" width="24" height="24"><path d="M115.52 55.168a42.688 42.688 0 0 0-60.352 60.352L266.112 326.4a356.608 356.608 0 0 1-31.168 1.152c-28.544 0-54.08 0-73.408 1.984-20.224 2.112-39.04 6.72-56 18.24-32.192 22.016-44.544 54.208-49.28 83.84-3.456 22.08-3.072 46.272-2.752 65.856v28.928c-0.32 19.52-0.64 43.712 2.816 65.792 4.672 29.632 17.024 61.824 49.28 83.84 16.896 11.52 35.712 16.128 55.936 18.24 19.328 1.984 44.864 1.984 73.408 1.984 32.96 0 51.84 2.752 67.392 9.152 15.488 6.4 30.72 17.792 53.76 41.28 44.8 45.76 82.88 84.672 112.896 107.648 29.312 22.528 64.128 40.832 101.312 25.088 36.864-15.616 48.64-53.12 53.76-90.048 3.712-26.496 4.8-59.968 5.12-99.904l279.296 279.296a42.688 42.688 0 1 0 60.352-60.352L115.52 55.168zM570.304 144.448c-37.12-15.68-72.064 2.56-101.376 25.088-17.088 13.184-36.928 31.488-59.072 53.376-8.512 8.384-12.8 12.608-12.8 17.92 0 5.312 4.224 9.6 12.8 18.112L585.6 434.752c18.56 18.56 27.904 27.904 35.84 24.64 7.872-3.264 7.872-16.448 7.872-42.752V389.12c0-64.704 0-116.736-5.248-154.56-5.12-36.928-16.896-74.432-53.76-90.048zM883.2 310.912a42.688 42.688 0 0 0-59.776 60.8C869.952 417.536 896 473.792 896 533.376c0 41.6-12.608 81.216-35.776 116.864a42.688 42.688 0 0 0 71.552 46.464c31.36-48.256 49.536-103.872 49.536-163.328 0-85.888-37.824-163.2-98.048-222.4zM758.336 399.616a42.688 42.688 0 1 0-65.92 54.144c21.12 25.792 32.896 56.448 32.896 88.96v2.048a42.688 42.688 0 1 0 85.376-2.048 224.64 224.64 0 0 0-52.352-143.104z" fill="#ffffff" p-id="13039"></path></svg>
+                                </button>
+                                <el-slider class="volume-slider" :show-tooltip="false" @input="changeMuteProcess" :max="100" v-model="value1"></el-slider>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://lsclgx.github.io/MyLibs/vue@2.7.16.min.js"></script>
+<script src="https://lsclgx.github.io/MyLibs/element-ui-2.15.14/element-ui.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                value: 0,
+                value1: 50,
+                sc: 0,
+                total: 0,
+                isMuted: false,
+                isPaused: true,
+                isChange: false,
+                currentTime: '00:00',
+                liked: false,
+                currentIndex: 0,
+                currentName: '',
+                currentSinger: '',
+                audioSource: '',
+                list: [{
+                    name: '七里香',
+                    singer: '周杰伦',
+                    url: './audios/周杰伦 - 七里香.flac'
+                }, {
+                    name: '爱的可能',
+                    singer: '叶倩文',
+                    url: './audios/叶倩文 - 爱的可能.flac'
+                }, {
+                    name: '南山忆',
+                    singer: '许嵩',
+                    url: './audios/许嵩 - 南山忆.mp3'
+                }]
+            }
+        },
+        watch: {
+            audioSource: {
+                handler(val) {
+                    if(val) {
+                        let self = this
+                        self.$nextTick(() => {
+                            let dom = document.getElementById('audio')
+                            // 只赋值一次
+                            let n = 0
+                            dom.addEventListener("canplay", function(){
+                                //设置监听，点击时获取时长
+                                if(n === 0) {
+                                    const sc = parseInt(dom.duration) || 0;
+                                    self.total = sc
+                                    self.sc = self.handleTime(sc)
+                                    n++
+                                }
+                            })
+                            // 监听音频播放时间并更新进度条
+                            dom.addEventListener('timeupdate', function () {
+                                self.updateProgress(dom);
+                            }, false)
+                        })
+                    }
+                },
+                immediate: true
+            }
+        },
+        created() {
+            this.currentIndex = 0
+            this.setCurrentInfo()
+        },
+        methods: {
+            // 更新进度条
+            updateProgress(dom) {
+                this.currentTime = this.handleTime(dom.currentTime)
+                if(this.isChange) return
+                var value = dom.currentTime / dom.duration || 0;
+                this.$set(this, 'value', value * 100)
+                if(value === 1) {
+                    this.$set(this, 'value', 0)
+                    this.$set(this, 'currentTime', '00:00')
+                    this.isPaused = true
+                }
+            },
+            mute() {
+                let dom = document.getElementById('audio')
+                this.isMuted = !this.isMuted
+                dom.muted = this.isMuted
+                dom.volume = this.isMuted ? 0 : 0.5
+                this.$set(this, 'value1', dom.volume * 100)
+            },
+            play() {
+                setTimeout(() => {
+                    let dom = document.getElementById('audio')
+                    dom.play()
+                    this.isPaused = false
+                }, 100);
+            },
+            pause() {
+                setTimeout(() => {
+                    let dom = document.getElementById('audio')
+                    dom.pause()
+                    this.isPaused = true
+                }, 100);
+            },
+            setCurrentInfo() {
+                this.currentName = this.list[this.currentIndex].name
+                this.currentSinger = this.list[this.currentIndex].singer
+                this.audioSource = this.list[this.currentIndex].url
+                this.$set(this, 'value', 0)
+                this.$set(this, 'currentTime', '00:00')
+                this.isPaused = true
+            },
+            pre() {
+                this.currentIndex = this.currentIndex > 0 ? this.currentIndex - 1 : this.list.length - 1
+                this.setCurrentInfo()
+            },
+            next() {
+                this.currentIndex = this.currentIndex === this.list.length - 1 ? 0 : this.currentIndex + 1
+                this.setCurrentInfo()
+            },
+            changeProcess(e) {
+                let dom = document.getElementById('audio')
+                dom.currentTime = this.total * (e / 100)
+                dom.play()
+                this.isPaused = false
+            },
+            changeMuteProcess(e) {
+                let dom = document.getElementById('audio')
+                dom.volume = e / 100
+                if (dom.volume === 0) {
+                    this.isMuted = true
+                } else {
+                    this.isMuted = false
+                }
+                dom.muted = this.isMuted
+            },
+            handleTime(value) {
+                let t = ''
+                if(value > -1) {
+                    const min = Math.floor(value/60)
+                    const sec = Math.floor(value % 60)
+                    if (min < 10) t = '0' + min + ':'
+                    else t = min + ':'
+                    if (sec < 10) t += '0'
+                    t += sec
+                }
+                return t
+            }
+        }
+    })
+</script>
+</html>

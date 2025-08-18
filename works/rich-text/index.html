@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>contenteditable</title>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            overflow: hidden;
+        }
+        .container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .content {
+            position: relative;
+        }
+        .my-editor {
+            width: 900px;
+            height: 500px;
+            border: 1px solid #dcdcdc;
+            border-radius: 10px;
+            background-color: #f2f2f2;
+            margin: 50px auto 0;
+        }
+        nav {
+            width: 100%;
+            height: 32px;
+            padding: 0 15px;
+            background-color: #ddd6d6;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .nav-btn {
+            width: 20px;
+            height: 20px;
+            margin-left: 2px;
+            padding: 3px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .nav-btn:hover {
+            background-color: #c4bcbc;
+        }
+        .nav-btn img {
+            width: 14px;
+            height: 14px;
+            object-fit: cover;
+        }
+        .nav-divider {
+            width: 1px;
+            height: 14px;
+            margin: 0 10px;
+            background-color: #999;
+        }
+        footer {
+            height: 28px;
+            line-height: 27px;
+            padding: 0 15px;
+            border-top: 1px solid #dcdcdc;
+            text-align: right;
+            font-size: 12px;
+            color: #666;
+            box-sizing: border-box;
+        }
+        main {
+            width: 100%;
+            height: 440px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .editor {
+            width: 100%;
+            height: 440px;
+            overflow-y: auto;
+            outline: none;
+            padding: 15px;
+            box-sizing: border-box;
+            position: relative;
+            caret-color: transparent;
+        }
+        .cursor {
+            display: block;
+            width: 2px;
+            height: 20px;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #000;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+        /* .color-btn img {
+            position: relative;
+            transform: translateX(-80px);
+            filter: drop-shadow(#f00 80px 0);     
+            border-left: 4px solid transparent;      
+            border-right: 4px solid transparent;
+        } */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="my-editor">
+            <nav>
+                <span class="nav-btn" title="撤销"><img src="./svg/revoke.svg" alt=""></span>
+                <span class="nav-btn" title="重做"><img src="./svg/redo.svg" alt=""></span>
+                <div class="nav-divider"></div>
+                <select name="" id="">
+                    <option value="12px">12px</option>
+                    <option value="14px" selected>14px</option>
+                    <option value="16px">16px</option>
+                    <option value="18px">18px</option>
+                    <option value="20px">20px</option>
+                </select>
+                <span class="nav-btn color-btn" title="字体颜色"><img src="./svg/color.svg" alt=""></span>
+                <span class="nav-btn bgcolor-btn" title="背景颜色"><img src="./svg/bgcolor.svg" alt=""></span>
+                <div class="nav-divider"></div>
+                <span class="nav-btn" title="加粗" onclick="baseOperate('bold')"><img src="./svg/bold.svg" alt=""></span>
+                <span class="nav-btn" title="斜体" onclick="baseOperate('italic')"><img src="./svg/italic.svg" alt=""></span>
+                <span class="nav-btn" title="中划线" onclick="baseOperate('midline')"><img src="./svg/midline.svg" alt=""></span>
+                <span class="nav-btn" title="下划线" onclick="baseOperate('underline')"><img src="./svg/underline.svg" alt=""></span>
+                <div class="nav-divider"></div>
+                <span class="nav-btn" title="左对齐"><img src="./svg/left.svg" alt=""></span>
+                <span class="nav-btn" title="居中对齐"><img src="./svg/center.svg" alt=""></span>
+                <span class="nav-btn" title="右对齐"><img src="./svg/right.svg" alt=""></span>
+                <div class="nav-divider"></div>
+                <span class="nav-btn" title="上标"><img src="./svg/superscript.svg" alt=""></span>
+                <span class="nav-btn" title="下标"><img src="./svg/subscript.svg" alt=""></span>
+                <div class="nav-divider"></div>
+                <span class="nav-btn" title="表情"><img src="./svg/emoji.svg" alt=""></span>
+                <span class="nav-btn" title="图片"><img src="./svg/img.svg" alt=""></span>
+                <div class="nav-divider"></div>
+                <span class="nav-btn" title="打印"><img src="./svg/print.svg" alt=""></span>
+                <span class="nav-btn" title="全屏"><img src="./svg/fullscreen.svg" alt=""></span>
+            </nav>
+            <main>
+                <div
+                id="editor"
+                class="editor"
+                contenteditable="true">
+                </div>
+                <div class="cursor"></div>
+            </main>
+            <footer>
+                字数：200/1000
+            </footer>
+        </div>
+    </div>
+</body>
+<script>
+    // 自定义光标更新
+    function updateCursor(rect) {
+        const main = document.querySelector('main')
+        const mainRect = main.getBoundingClientRect()
+        const cursor = document.querySelector('.cursor')
+        cursor.style.left = rect.right - mainRect.left + 'px'
+        cursor.style.top = rect.top -mainRect.top + 'px'
+    }
+
+    // base operate，加粗、斜体、中划线、下划线
+    function baseOperate(type) {
+        const selection = window.getSelection()
+        const range = selection?.getRangeAt(0)
+        // const rect = range?.getBoundingClientRect()
+        // console.error(rect)
+        // updateCursor(rect)
+        const dom = range?.extractContents()
+        console.error(dom)
+        const newDom = document.createElement('span')
+        console.error('isWrapped', isWrapped(range))
+        if (type === 'bold') newDom.style.fontWeight = 'bold'
+        // if (type === 'italic') newDom.style.fontStyle = 'italic'
+        // if (type === 'midline') newDom.style.textDecoration = 'line-through'
+        // if (type === 'underline') newDom.style.textDecoration = 'underline'
+        newDom.append(dom)
+        range?.insertNode(newDom)
+        // newDom.style.fontWeight = isBold(range) ? 'normal' : 'bold'
+        // range.surroundContents(newDom)
+    }
+
+    // 内容是否已经被效果标签包裹
+    function isWrapped(range, type) {
+        let container = range.commonAncestorContainer
+        console.error('container', container, container.nodeType, Node.TEXT_NODE)
+        if (container.nodeType === 1) {
+            const a = window.getComputedStyle(container).fontWeight
+            // console.error('223434', a)
+        } else {
+            container = container.parentElement
+            const a = window.getComputedStyle(container).fontWeight
+            // console.error('99999', a)
+        }
+    }
+
+    function isBold(range) {
+        console.error('rangeeeee', range)
+        const node = range.startContainer.parentElement
+        console.error('node111', range.startContainer, node)
+        return window.getComputedStyle(node).fontWeight >= 700
+    }
+
+    
+</script>
+</html>

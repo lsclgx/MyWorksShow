@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>clock</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-image: -webkit-linear-gradient(#F3F5ED, #EDFAEC);
+    }
+    .container {
+      width: 380px;
+      height: 380px;
+      position: relative;
+    }
+    .clock-bg {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .hour {
+      width: 6px;
+      height: 90px;
+      background-color: #000;
+      border: 1px solid #dcdcdc;
+      box-sizing: border-box;
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 3px 100%;
+      transform: translateX(187px) translateY(100px) rotate(0deg);
+    }
+    .min {
+      width: 4px;
+      height: 120px;
+      background-color: #222;
+      border: 1px solid #dcdcdc;
+      box-sizing: border-box;
+      border-radius: 4px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 2px 100%;
+      transform: translateX(188px) translateY(70px) rotate(0deg);
+    }
+    .sec {
+      width: 2px;
+      height: 125px;
+      border-radius: 2px;
+      background-color: red;
+      /* border: 1px solid #dcdcdc; */
+      box-sizing: border-box;
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 1px 100%;
+      transform: translateX(189px) translateY(65px) rotate(0deg);
+    }
+    .dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 20px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-top: -10px;
+      margin-left: -10px;
+      background-color: #000;
+      border: 1px solid lightgrey;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img class="clock-bg" src="./clock.png" alt="">
+    <div class="hour"></div>
+    <div class="min"></div>
+    <div class="sec"></div>
+    <div class="dot"></div>
+  </div>
+</body>
+<script>
+  const hDom = document.querySelector('.hour')
+  const mDom = document.querySelector('.min')
+  const sDom = document.querySelector('.sec')
+
+  const getDeg = (time, type, m) => {
+    let deg = 0
+    if (type === 'h') {
+      deg = (360 / 12 * time) + (360 / 12 * (m / 60))
+    } else {
+      deg = 360 / 60 * time
+    }
+    return deg
+  }
+
+  const getTimePos = () => {
+    const date = new Date()
+    const h = date.getHours() > 12 ? date.getHours() - 12 : date.getHours()
+    const m = date.getMinutes()
+    const s = date.getSeconds()
+    hDom.style.transform = 'translateX(187px) translateY(100px) rotate(' + getDeg(h, 'h', m) + 'deg)'
+    mDom.style.transform = 'translateX(188px) translateY(70px) rotate(' + getDeg(m, 'm') + 'deg)'
+    sDom.style.transform = 'translateX(189px) translateY(65px) rotate(' + getDeg(s, 's') + 'deg)'
+  }
+
+  getTimePos()
+  
+  setInterval(() => {
+    getTimePos()
+  }, 1000)
+</script>
+</html>
