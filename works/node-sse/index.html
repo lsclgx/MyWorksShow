@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Example</title>
+    <script src="https://lsclgx.github.io/MyLibs/showdown@2.1.0.min.js"></script>
+</head>
+<body>
+    <h1>Server-Sent Events</h1>
+    <button onclick="getSse()">前端用get eventsource，可以将简单参数拼在url上</button>
+    <button onclick="postSse()">前端用post fetch来调用，可以传递json参数</button>
+    <main style="border: 1px solid #dcdcdc;width: 100%;">
+        <div id="events"></div>
+        <div style="display: none" id="post"></div>
+    </main>
+
+    <script>
+        let eventSource = null
+        function getSse() {
+            getFn()
+            document.getElementById('events').style.display = 'block';
+            document.getElementById('post').style.display = 'none';
+        }
+
+        function postSse() {
+            postFn({a:Date.now()})
+            document.getElementById('post').style.display = 'block';
+            document.getElementById('events').style.display = 'none';
+        }
+    </script>
+    <script>
+        function getFn() {
+            // try {
+            //     if (loading) {
+            //         if (!abortController.signal.aborted) abortController.abort();
+            //         loading = false
+            //     }
+            // } catch (e) {}
+            // return
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null
+            }
+            eventSource = new EventSource('http://localhost:3000/sse');
+            const eventsDiv = document.getElementById('events');
+            eventsDiv.innerHTML = ''
+
+            // 默认事件处理器
+            eventSource.onmessage = function(e) {
+                const p = document.createElement('p');
+                p.textContent = `Message: ${e.data}`;
+                eventsDiv.appendChild(p);
+            };
+
+            // 自定义事件处理器
+            eventSource.addEventListener('update', function(e) {
+                const p = document.createElement('p');
+                p.style.color = 'blue';
+                p.textContent = `Update Event: ${e.data}`;
+                eventsDiv.appendChild(p);
+            });
+
+            // 连接打开事件
+            eventSource.onopen = function() {
+                console.log('Connection opened');
+            };
+
+            // 错误处理
+            eventSource.onerror = function() {
+                console.log('EventSource error');
+            };
+        }
+
+        // const abortController = new AbortController();
+        const converter = new showdown.Converter({ simpleLineBreaks: true });
+        let sseData = ''
+        let loading = false
+        async function postFn(jsonData) {
+            if (loading) return
+            document.getElementById('post').innerHTML = ''
+            sseData = ''
+            loading = true
+            const response = await fetch('http://localhost:3000/postSse', {
+                method: 'POST',  // 使用POST方法发送JSON
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'text/event-stream'  // 告诉服务器我们期望SSE响应
+                },
+                body: JSON.stringify(jsonData),
+                // signal: abortController.signal
+            });
+
+            if (!response.ok) {
+                throw new Error(`SSE连接失败: ${response.status}`);
+            }
+
+            // 获取可读流
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            while (true) {
+                // if (abortController.signal.aborted) {
+                //     console.log('Stream reading was aborted');
+                //     return;
+                // }
+                const { done, value } = await reader.read();
+                if (done) {
+                    loading = false
+                    // 关闭时删除和保存
+                    console.log('SSE连接关闭');
+                    break;
+                }
+                const chunk = decoder.decode(value);
+                // 处理SSE格式的数据（可能包含多个事件）
+                // const lines = chunk.split('\n');
+                const lines = [chunk]
+                // console.error('lines', chunk)
+                let eventData = '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data:')) {
+                        try {
+                            eventData = line.substring(5).trim()
+                            if (eventData === 'end') {
+                                loading = false
+                                console.log('SSE事件结束');
+                                return;
+                            }
+                            console.log('收到SSE事件:', eventData);
+                            sseData += eventData
+                            const arr = sseData.split('&nr&')
+                            let str = ''
+                            arr.forEach(item => {
+                                str = str + item + '\n'
+                            })
+                            document.querySelector('#post').innerHTML = converter.makeHtml(str);
+                            // 在这里处理事件数据
+                        } catch (e) {
+                            // console.error('解析SSE数据失败:', e);
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

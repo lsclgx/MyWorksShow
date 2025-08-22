@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket 示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #messages {
+            height: 300px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .server-message {
+            background-color: #f0f0f0;
+        }
+        .client-message {
+            background-color: #e6f7ff;
+            text-align: right;
+        }
+        #messageInput {
+            width: 70%;
+            padding: 8px;
+        }
+        #sendButton {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #sendButton:hover {
+            background-color: #45a049;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 5px;
+            font-weight: bold;
+        }
+        .connected {
+            color: green;
+        }
+        .disconnected {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket</h1>
+    <div id="messages"></div>
+    <div>
+        <input type="text" id="messageInput" placeholder="输入消息...">
+        <button id="sendButton">发送</button>
+    </div>
+    <div id="status" class="status disconnected">未连接</div>
+
+    <script src="./client.js"></script>
+</body>
+</html>
